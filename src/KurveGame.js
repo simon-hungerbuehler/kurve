@@ -46,7 +46,7 @@ Kurve.Game = {
     
     init: function() {
         this.fps = Kurve.Config.Game.fps;
-        this.intervalTimeOut = Math.round(1000 / this.fps);
+        this.intervalTimeOut = Math.round(50 / this.fps);
         this.playerScoresElement = document.getElementById('player-scores');
 
         this.Audio.init();
@@ -188,7 +188,15 @@ Kurve.Game = {
                 this.Audio.tension();
             }
         
-            if ( Object.keys(this.runningCurves).length === 1 ) this.terminateRound();
+            if ( Object.keys(this.runningCurves).length === 1 )
+            {
+                this.terminateRound();
+                if(!this.isGameOver)
+                {
+                    console.log("start new Round");
+                    this.startNewRound();
+                }
+            }
         }
     },
     
@@ -271,8 +279,9 @@ Kurve.Game = {
         });
         
         if (winners.length === 0) return;
-        if (winners.length === 1) this.gameOver(winners[0]);
-        if (winners.length  >  1) this.initDeathMatch(winners);
+        // if (winners.length === 1) 
+        this.gameOver(winners[0]);
+        //if (winners.length  >  1) this.initDeathMatch(winners);
     },
 
     initDeathMatch: function(winners) {
@@ -301,15 +310,34 @@ Kurve.Game = {
     
     gameOver: function(winner) {
         this.isGameOver = true;
+        console.log("game over is now true");
 
         this.Audio.gameOver();
         Kurve.Piwik.trackPageVariable(4, 'finished_game', 'yes');
         Kurve.Piwik.trackPageView('GameOver');
 
-        Kurve.Lightbox.show(
-            '<h1 class="active ' + winner.getId() + '">' + winner.getId() + ' wins!</h1>' +
-            '<a href="#" onclick="Kurve.reload(); return false;" title="Go back to the menu"  class="button">Start new game</a>'
-        );
+        console.log("save brain");
+        console.log("winnerId: " + winner.getId());
+
+        var index;
+        this.bots.forEach((b, i) => {
+            if(b.getPlayer().getId() == winner.getId())
+            {
+                index = i;
+            }
+        });
+
+        console.log("index: " + index);
+        
+        localStorage.setItem('brain', JSON.stringify(this.bots[index].brain));
+
+        console.log("Kurve.Menu.onspaceDown ausgelöst");
+        Kurve.Menu.onSpaceDown();
+
+        // Kurve.Lightbox.show(
+        //     '<h1 class="active ' + winner.getId() + '">' + winner.getId() + ' wins!</h1>' +
+        //     '<a href="#" onclick="Kurve.reload(); return false;" title="Go back to the menu"  class="button">Start new game</a>'
+        // );
     },
 
     Audio: {

@@ -25,28 +25,28 @@
 'use strict';
 
 Kurve.Menu = {
-    
+
     boundOnKeyDown: null,
     audioPlayer: null,
     scrollKeys: ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Spacebar', ' '],
-    
+
     init: function() {
         this.initPlayerMenu();
         this.addWindowListeners();
         this.addMouseListeners();
         this.initMenuMusic();
     },
-        
+
     initPlayerMenu: function() {
         var playerHTML = '';
-        
+
         Kurve.players.forEach(function(player) {
             playerHTML += player.renderMenuItem();
         });
-        
+
         document.getElementById('menu-players-list').innerHTML += playerHTML;
     },
-    
+
     addWindowListeners: function() {
         this.boundOnKeyDown = this.onKeyDown.bind(this);
         window.addEventListener('keydown', this.boundOnKeyDown, false);
@@ -55,25 +55,25 @@ Kurve.Menu = {
     addMouseListeners: function() {
         var playerItems = document.getElementById('menu-players-list').children;
 
-        for (var i=0; i < playerItems.length; i++) {
+        for (var i = 0; i < playerItems.length; i++) {
             playerItems[i].addEventListener('click', this.onPlayerItemClicked, false);
         }
     },
 
     initMenuMusic: function() {
         this.audioPlayer = Kurve.Sound.getAudioPlayer();
-        this.audioPlayer.play('menu-music', {loop: true, background: true, fade: 2000, volume: 1});
+        this.audioPlayer.play('menu-music', { loop: true, background: true, fade: 2000, volume: 1 });
     },
-    
+
     removeWindowListeners: function() {
-        window.removeEventListener('keydown', this.boundOnKeyDown, false);  
+        window.removeEventListener('keydown', this.boundOnKeyDown, false);
     },
 
     onPlayerItemClicked: function(event) {
         Kurve.Menu.audioPlayer.play('menu-navigate');
         Kurve.Menu.togglePlayerActivation(this.id);
     },
-    
+
     onKeyDown: function(event) {
         if (event.metaKey) {
             return; //Command or Ctrl pressed
@@ -88,35 +88,51 @@ Kurve.Menu = {
         }
 
         Kurve.players.forEach(function(player) {
-            if ( player.isKeyLeft(event.keyCode) ) {
+            if (player.isKeyLeft(event.keyCode)) {
                 Kurve.Menu.activatePlayer(player.getId());
                 Kurve.Menu.audioPlayer.play('menu-navigate');
-            } else if ( player.isKeyRight(event.keyCode) ) {
+            } else if (player.isKeyRight(event.keyCode)) {
                 Kurve.Menu.deactivatePlayer(player.getId());
                 Kurve.Menu.audioPlayer.play('menu-navigate');
-            } else if ( player.isKeySuperpower(event.keyCode) ) {
+            } else if (player.isKeySuperpower(event.keyCode)) {
                 Kurve.Menu.nextSuperpower(player.getId());
                 Kurve.Menu.audioPlayer.play('menu-navigate');
             }
         });
     },
-    
+
     onSpaceDown: function() {
+
+        console.log("kurve.menu.onspacedown");
+
+        Kurve.Game.curves = [];
+        Kurve.Game.isRunning = false;
+
+        Kurve.Game.runningCurves = {};
+        Kurve.Game.players = [];
+        Kurve.Game.bots = [];
+        Kurve.Game.deathMatch = false;
+        Kurve.Game.isPaused=false;
+        Kurve.Game.isRoundStarted=false;
+        Kurve.Game.isGameOver=false;
+        Kurve.Game.CURRENT_FRAME_ID=0;
+
         Kurve.players.forEach(function(player) {
-            if ( player.isActive() ) {
+            if (player.isActive()) {
                 var curve = new Kurve.Curve(player, Kurve.Game, Kurve.Field, Kurve.Config.Curve, Kurve.Sound.getAudioPlayer());
 
                 Kurve.Game.curves.push(curve);
 
                 // TODO Only add bot if player is selected as bot
-                var bot = new Kurve.Bot(curve);
+                console.log("log player id " + player.getId())
+                var bot = new Kurve.Bot(curve, player.getId());
                 Kurve.Game.bots.push(bot);
             }
         });
-        
+
         if (Kurve.Game.curves.length <= 1) {
             Kurve.Game.curves = [];
-            Kurve.Menu.audioPlayer.play('menu-error', {reset: true});
+            Kurve.Menu.audioPlayer.play('menu-error', { reset: true });
 
             u.addClass('shake', 'menu');
 
@@ -136,7 +152,10 @@ Kurve.Menu = {
         });
 
         Kurve.Field.init();
-        Kurve.Menu.audioPlayer.pause('menu-music', {fade: 1000});
+        Kurve.Menu.audioPlayer.pause('menu-music', { fade: 1000 });
+
+        console.log("new game started");
+
         Kurve.Game.startGame();
 
         u.addClass('hidden', 'layer-menu');
@@ -162,9 +181,9 @@ Kurve.Menu = {
 
         for (var i in Kurve.Superpowerconfig.types) {
             count++;
-            if ( !(Kurve.Superpowerconfig.types[i] === player.getSuperpower().getType() ) ) continue;
+            if (!(Kurve.Superpowerconfig.types[i] === player.getSuperpower().getType())) continue;
 
-            if ( Object.keys(Kurve.Superpowerconfig.types).length === count) {
+            if (Object.keys(Kurve.Superpowerconfig.types).length === count) {
                 superpowerType = Object.keys(Kurve.Superpowerconfig.types)[0];
             } else {
                 superpowerType = Object.keys(Kurve.Superpowerconfig.types)[count];
@@ -173,7 +192,7 @@ Kurve.Menu = {
             break;
         }
 
-        player.setSuperpower( Kurve.Factory.getSuperpower(superpowerType) );
+        player.setSuperpower(Kurve.Factory.getSuperpower(superpowerType));
     },
 
     previousSuperpower: function(playerId) {
@@ -183,9 +202,9 @@ Kurve.Menu = {
 
         for (var i in Kurve.Superpowerconfig.types) {
             count++;
-            if ( !(Kurve.Superpowerconfig.types[i] === player.getSuperpower().getType() ) ) continue;
+            if (!(Kurve.Superpowerconfig.types[i] === player.getSuperpower().getType())) continue;
 
-            if ( 1 === count) {
+            if (1 === count) {
                 superpowerType = Object.keys(Kurve.Superpowerconfig.types)[Object.keys(Kurve.Superpowerconfig.types).length - 1];
             } else {
                 superpowerType = Object.keys(Kurve.Superpowerconfig.types)[count - 2];
@@ -194,11 +213,11 @@ Kurve.Menu = {
             break;
         }
 
-        player.setSuperpower( Kurve.Factory.getSuperpower(superpowerType) );
+        player.setSuperpower(Kurve.Factory.getSuperpower(superpowerType));
     },
 
     activatePlayer: function(playerId) {
-        if ( Kurve.getPlayer(playerId).isActive() ) return;
+        if (Kurve.getPlayer(playerId).isActive()) return;
 
         Kurve.getPlayer(playerId).setIsActive(true);
 
@@ -207,7 +226,7 @@ Kurve.Menu = {
     },
 
     deactivatePlayer: function(playerId) {
-        if ( !Kurve.getPlayer(playerId).isActive() ) return;
+        if (!Kurve.getPlayer(playerId).isActive()) return;
 
         Kurve.getPlayer(playerId).setIsActive(false);
 
@@ -216,7 +235,7 @@ Kurve.Menu = {
     },
 
     togglePlayerActivation: function(playerId) {
-        if ( Kurve.getPlayer(playerId).isActive() ) {
+        if (Kurve.getPlayer(playerId).isActive()) {
             Kurve.Menu.deactivatePlayer(playerId);
         } else {
             Kurve.Menu.activatePlayer(playerId);
@@ -238,5 +257,5 @@ Kurve.Menu = {
 
         return availableTypes[Math.floor(Math.random() * availableTypes.length)];
     }
-    
+
 };
